@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "name": "Mercadopago.name",
+  "description": "Mercadopago.description",
+  "authors": [
+    {
+      "name": "Miguel Salcedo",
+      "url": "https://github.com/imiguelsalcedo"
+    }
+  ],
+  "currencies": ["ARS", "BRL", "UYU", "CLP", "COP", "MXN", "PEN"]
+}
