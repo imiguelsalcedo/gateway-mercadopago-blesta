@@ -1,15 +1,5 @@
-<script src="https://sdk.mercadopago.com/js/v2"></script>
 <?php
 $this->Form->setCsrfOptions(['set_on_create' => true]);
 $this->Form->create($post_to);
 $this->Form->fieldSubmit('submit', $this->_('Mercadopago.buildprocess.submit', true), ['class' => 'float-right mt-2']);
 $this->Form->end();
-?>
-<!--
-<div class="float-right">
-    <div class="card bg-light d-block p-2">
-        Costos administrativos: <strong></strong>
-    </div>
-    <div>
-    </div>
-</div> -->
