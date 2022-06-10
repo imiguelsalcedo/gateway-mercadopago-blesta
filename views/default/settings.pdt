@@ -13,11 +13,4 @@
        ?>
 	<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('Mercadopago.statement_descriptor_note');?></div></span>
     </li>
-    <li>
-	   <?php
-        $this->Form->fieldCheckbox('sandbox_mode', 'true', ((isset($meta['sandbox_mode']) ? $meta['sandbox_mode'] : 'false') == 'true'), ['id'=>'sandbox_mode']);
-        $this->Form->label($this->_('Mercadopago.sandbox_mode', true), 'sandbox_mode', ['class'=>'inline']);
-       ?>
-	<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('Mercadopago.sandbox_mode_note');?></div></span>
-	</li>
 </ul>

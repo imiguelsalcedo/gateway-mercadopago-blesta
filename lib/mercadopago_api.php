@@ -1,4 +1,9 @@
 <?php
+
+require_once dirname(__FILE__) .
+    DIRECTORY_SEPARATOR .
+    "mercadopago_response.php";
+
 /**
  * MercadoPago API.
  */
@@ -17,7 +22,7 @@ class MercadopagoApi
      */
     public function __construct($access_token)
     {
-         $this->access_token = $access_token;
+        $this->access_token = $access_token;
     }
 
     private function apiRequest($url, array $params = [], $type = "POST")
@@ -55,10 +60,15 @@ class MercadopagoApi
 
         // Execute request
         curl_setopt($ch, CURLOPT_URL, $url);
-        $data = json_decode(curl_exec($ch));
+        $data = new stdClass();
+        if (curl_errno($ch)) {
+            $data->message = curl_error($ch);
+        } else {
+            $data = json_decode(curl_exec($ch));
+        }
         curl_close($ch);
 
-        return $data;
+        return new MercadopagoResponse($data);
     }
 
     /**
@@ -69,7 +79,11 @@ class MercadopagoApi
      */
     public function buildPayment($params)
     {
-        return $this->apiRequest("https://api.mercadopago.com/checkout/preferences", $params, "POST");
+        return $this->apiRequest(
+            "https://api.mercadopago.com/checkout/preferences",
+            $params,
+            "POST"
+        );
     }
 
     /**
@@ -80,6 +94,10 @@ class MercadopagoApi
      */
     public function checkPayment($reference)
     {
-        return $this->apiRequest("https://api.mercadopago.com/v1/payments/" . $reference, [], "GET");
+        return $this->apiRequest(
+            "https://api.mercadopago.com/v1/payments/" . $reference,
+            [],
+            "GET"
+        );
     }
 }
