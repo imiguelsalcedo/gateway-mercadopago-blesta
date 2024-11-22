@@ -158,8 +158,8 @@ class Mercadopago extends NonmerchantGateway
 	    ],
 
 	    "payer" => (object)[
-		"first_name" => $contact_info['first_name'],
-		"last_name" => $contact_info['last_name'],
+		"name" => $contact_info['first_name'],
+		"surname" => $contact_info['last_name'],
 	    ],
 
             "back_urls" => (object) [
