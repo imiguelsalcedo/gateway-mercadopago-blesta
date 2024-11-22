@@ -145,15 +145,22 @@ class Mercadopago extends NonmerchantGateway
 
         $params = [
             "items" => [
-                0 => [
+		0 => [
+		    "id" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"])),
                     "title" => isset($options["description"]) ? $options["description"] : null,
                     "description" => isset($options["description"]) ? $options["description"] : null,
                     "category_id" => "services",
                     "quantity" => 1,
                     "currency" => $this->currency,
                     "unit_price" =>  floatval($amount),
-                ],
-            ],
+
+		],
+	    ],
+
+	    "payer" => (object)[
+		"first_name" => $contact_info['first_name'],
+		"last_name" => $contact_info['last_name'],
+	    ],
 
             "back_urls" => (object) [
                 "success" => isset($options["return_url"]) ? $options["return_url"] : null,
@@ -163,6 +170,7 @@ class Mercadopago extends NonmerchantGateway
             "notification_url" => Configure::get("Blesta.gw_callback_url") . Configure::get("Blesta.company_id") .
             "/mercadopago/?client_id=" . (isset($contact_info["client_id"]) ? $contact_info["client_id"] : null),
             "statement_descriptor" => isset($statement_descriptor) ? $statement_descriptor : null,
+	    "external_reference" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"])),
             "metadata" => (object)[
                 "client_id" => $contact_info["client_id"],
                 "invoices" => $this->serializeInvoices($invoice_amounts)
