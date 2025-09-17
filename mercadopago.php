@@ -241,7 +241,7 @@ class Mercadopago extends NonmerchantGateway
         $this->log(
             "validate",
             json_encode(
-                ["reference" => $callback_data->data->id],
+                ["reference" => isset($callback_data->data->id) ? $callback_data->data->id : null],
                 JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
             ),
             "output",
@@ -287,7 +287,7 @@ class Mercadopago extends NonmerchantGateway
             "status" =>  $status,
             "reference_id" => isset($data->order->id) ? $data->order->id : null,
             "transaction_id" => isset($data->id) ? $data->id : null,
-            "invoices" => $this->unserializeInvoices($data->metadata->invoices ? $data->metadata->invoices : null),
+            "invoices" => isset($data->metadata->invoices) ? $this->unserializeInvoices($data->metadata->invoices) : null,
         ];
     }
 
@@ -325,7 +325,7 @@ class Mercadopago extends NonmerchantGateway
             "status" => "approved", // we wouldn't be here if it weren't, right?
             "reference_id" => isset($data->order->id) ? $data->order->id : null,
             "transaction_id" => isset($data->id) ? $data->id : null,
-            "invoices" => $this->unserializeInvoices(isset($data->metadata->invoices) ? $data->metadata->invoices : null),
+            "invoices" => isset($data->metadata->invoices) ? $this->unserializeInvoices($data->metadata->invoices) : null,
         ];
     }
 

@@ -64,7 +64,13 @@ class MercadopagoApi
         if (curl_errno($ch)) {
             $data->message = curl_error($ch);
         } else {
-            $data = json_decode(curl_exec($ch));
+            $response = curl_exec($ch);
+	    $data = json_decode($response);
+
+
+	    if ($data === null) {
+		$data = new stdClass();
+	    }
         }
         curl_close($ch);
 
