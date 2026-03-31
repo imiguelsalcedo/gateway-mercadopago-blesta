@@ -25,53 +25,57 @@ class MercadopagoApi
         $this->access_token = $access_token;
     }
 
-    private function apiRequest($url, array $params = [], $type = "POST")
+    private function apiRequest($url, array $params = [], $type = "POST", array $extraHeaders = [])
     {
         // Send request
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-        curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+	$ch = curl_init();
 
-        $headers = [
+	$headers = [
             "Content-Type: application/json",
-            "Authorization: Bearer " . $this->access_token,
-        ];
+            "Authorization: Bearer " . $this->access_token
+	];
 
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+	$headers = array_merge($headers, $extraHeaders);
 
-        // Build GET request
-        if ($type == "GET") {
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
-            $url = $url . "?" . http_build_query($params);
-        }
+	$options = [
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_FRESH_CONNECT => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => true,
+            CURLOPT_HTTPHEADER => $headers,
+	];
 
-        // Build POST request
-        if ($type == "POST") {
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-            curl_setopt($ch, CURLOPT_POST, true);
-
+        // Build request based on HTTP method
+	if ($type == "GET") {
+            $options[CURLOPT_CUSTOMREQUEST] = "GET";
             if (!empty($params)) {
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
+		$url .= "?" . http_build_query($params);
             }
-        }
+	} elseif ($type == "POST") {
+            $options[CURLOPT_CUSTOMREQUEST] = "POST";
+            $options[CURLOPT_POST] = true;
+            if (!empty($params)) {
+		$options[CURLOPT_POSTFIELDS] = json_encode($params);
+            }
+	}
 
         // Execute request
-        curl_setopt($ch, CURLOPT_URL, $url);
-        $data = new stdClass();
-        if (curl_errno($ch)) {
+	$options[CURLOPT_URL] = $url;
+	curl_setopt_array($ch, $options);
+
+	$response = curl_exec($ch);
+
+	if (curl_errno($ch)) {
+            $data = new stdClass();
             $data->message = curl_error($ch);
-        } else {
-            $response = curl_exec($ch);
-	    $data = json_decode($response);
-
-
-	    if ($data === null) {
+	} else {
+            $data = json_decode($response);
+            if ($data === null) {
 		$data = new stdClass();
-	    }
-        }
+            }
+	}
+
         curl_close($ch);
 
         return new MercadopagoResponse($data);
@@ -81,14 +85,16 @@ class MercadopagoApi
      * Build the payment request.
      *
      * @param  array $params An array containing information to generate the payment link
-     * @return stdClass An object containing the api response
+     * @return MercadopagoResponse An object containing the api response
      */
-    public function buildPayment($params)
+    public function buildPayment($params,$idempotencyKey)
     {
+	$extraHeaders = ['X-Idempotency-Key: ' . $idempotencyKey];
         return $this->apiRequest(
             "https://api.mercadopago.com/checkout/preferences",
             $params,
-            "POST"
+            "POST",
+	    $extraHeaders
         );
     }
 
@@ -96,7 +102,7 @@ class MercadopagoApi
      * Validate this payment.
      *
      * @param  string $reference The unique reference code for this payment
-     * @return stdClass An object containing the api response
+     * @return MercadopagoResponse An object containing the api response
      */
     public function checkPayment($reference)
     {
@@ -104,6 +110,23 @@ class MercadopagoApi
             "https://api.mercadopago.com/v1/payments/" . $reference,
             [],
             "GET"
+        );
+    }
+
+    /**
+     * Refund this payment.
+     *
+     * @param  string $reference The unique reference code for this payment
+     * @return MercadopagoResponse An object containing the api response
+     */
+    public function refundPayment($reference, $params, $idempotencyKey)
+    {
+	$extraHeaders = ['X-Idempotency-Key: ' . $idempotencyKey];
+        return $this->apiRequest(
+            "https://api.mercadopago.com/v1/payments/.$reference./refunds",
+            $params,
+            "POST",
+	    $extraHeaders
         );
     }
 }

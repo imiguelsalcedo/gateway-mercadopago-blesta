@@ -141,47 +141,48 @@ class Mercadopago extends NonmerchantGateway
     {
         // Load the Mercadopago API
         $api = $this->getApi($this->meta["access_token"]);
-        $statement_descriptor = $this->meta["statement_descriptor"];
+        $statement_descriptor = $this->meta["statement_descriptor"] ?? null;
+
+	$idempotencyKey = $this->generateUuidV4();
 
         $params = [
             "items" => [
 		0 => [
-		    "id" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"])),
-                    "title" => isset($options["description"]) ? $options["description"] : null,
-                    "description" => isset($options["description"]) ? $options["description"] : null,
+		    "id" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"] ??  "")),
+                    "title" => $options["description"] ?? null,
+                    "description" => $options["description"] ?? null,
                     "category_id" => "services",
                     "quantity" => 1,
                     "currency" => $this->currency,
-                    "unit_price" =>  floatval($amount),
-
+                    "unit_price" =>  (float) $amount,
 		],
 	    ],
 
 	    "payer" => (object)[
-		"name" => $contact_info['first_name'],
-		"surname" => $contact_info['last_name'],
+		"first_name" => $contact_info["first_name"] ?? "",
+		"last_name" => $contact_info["last_name"] ?? "",
 	    ],
 
             "back_urls" => (object) [
-                "success" => isset($options["return_url"]) ? $options["return_url"] : null,
+                "success" => $options["return_url"] ?? null,
             ],
 
             "auto_return" => "approved",
             "notification_url" => Configure::get("Blesta.gw_callback_url") . Configure::get("Blesta.company_id") .
-            "/mercadopago/?client_id=" . (isset($contact_info["client_id"]) ? $contact_info["client_id"] : null),
-            "statement_descriptor" => isset($statement_descriptor) ? $statement_descriptor : null,
-	    "external_reference" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"])),
+				  "/mercadopago/?client_id=" . ($contact_info["client_id"] ?? null),
+            "statement_descriptor" => $statement_descriptor ?? null,
+	    "external_reference" => preg_replace('/[^a-zA-Z0-9]+/', '-', str_replace('#', '', $options["description"] ?? "")),
             "metadata" => (object)[
-                "client_id" => $contact_info["client_id"],
-                "invoices" => $this->serializeInvoices($invoice_amounts)
+                "client_id" => $contact_info["client_id"] ?? null,
+                "invoices" => $this->serializeInvoices($invoice_amounts ?? null)
             ],
         ];
 
         // Get the url to redirect the client to
-        $result = $api->buildPayment($params);
+        $result = $api->buildPayment($params, $idempotencyKey);
         $data = $result->data();
 
-        $mercadopago_url = isset($data->init_point) ? $data->init_point : "";
+        $mercadopago_url = $data->init_point ?? "";
 
         return $this->buildForm($mercadopago_url);
     }
@@ -228,7 +229,7 @@ class Mercadopago extends NonmerchantGateway
 
         // Log request received
         $this->log(
-            isset($_SERVER["REQUEST_URI"]) ? $_SERVER["REQUEST_URI"] : null,
+	    $_SERVER["REQUEST_URI"] ?? null,
             json_encode(
                 $callback_data,
                 JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
@@ -241,16 +242,14 @@ class Mercadopago extends NonmerchantGateway
         $this->log(
             "validate",
             json_encode(
-                ["reference" => isset($callback_data->data->id) ? $callback_data->data->id : null],
+		["reference" => $callback_data->data?->id ?? null],
                 JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
             ),
             "output",
             true
         );
 
-        $result = $api->checkPayment(
-            isset($callback_data->data->id) ? $callback_data->data->id : null
-        );
+	$result = $api->checkPayment($callback_data->data?->id ?? null);
         $data = $result->data();
 
         // Log post-back sent
@@ -261,33 +260,35 @@ class Mercadopago extends NonmerchantGateway
             true
         );
 
-        $status = 'error';
-        switch ((isset($data->status) ? $data->status : null)) {
-            case 'approved':
-                $status = 'approved';
-                break;
-            case 'pending':
-                $status = 'pending';
-                break;
-            case 'in_process':
-                $status = 'pending';
-                break;
-            case 'cancelled':
-                $status = 'void';
-                break;
-            case 'rejected':
-                $status = 'declined';
-                break;
-        }
+	switch ($data->status ?? null) {
+	    case 'approved':
+		$status = 'approved';
+		break;
+	    case 'pending':
+	    case 'in_process':
+		$status = 'pending';
+		break;
+	    case 'refunded':
+		$status = 'refunded';
+		break;
+	    case 'cancelled':
+		$status = 'void';
+		break;
+	    case 'rejected':
+		$status = 'declined';
+		break;
+	    default:
+		$status = 'error';
+	}
 
         return [
-            "client_id" => isset($data->metadata->client_id) ? $data->metadata->client_id : null,
-            "amount" => isset($data->transaction_details->total_paid_amount) ? $data->transaction_details->total_paid_amount : 0,
-            "currency" => isset($data->currency_id) ? $data->currency_id : null,
+            "client_id" => $data->metadata->client_id ?? null,
+            "amount" => $data->transaction_amount ?? 0,
+            "currency" => $data->currency_id ?? null,
             "status" =>  $status,
-            "reference_id" => isset($data->order->id) ? $data->order->id : null,
-            "transaction_id" => isset($data->id) ? $data->id : null,
-            "invoices" => isset($data->metadata->invoices) ? $this->unserializeInvoices($data->metadata->invoices) : null,
+            "reference_id" => $data->order->id ?? null,
+            "transaction_id" => $data->id ?? null,
+            "invoices" => $this->unserializeInvoices($data->metadata->invoices ?? null),
         ];
     }
 
@@ -315,18 +316,45 @@ class Mercadopago extends NonmerchantGateway
         $api = $this->getApi($this->meta["access_token"]);
 
         // Get transaction data
-        $result = $api->checkPayment(isset($get["payment_id"]) ? $get["payment_id"] : null);
+        $result = $api->checkPayment($get["payment_id"] ?? null);
         $data = $result->data();
 
         return [
-            "client_id" => isset($data->metadata->client_id) ? $data->metadata->client_id : null,
-            "amount" => isset($data->transaction_details->total_paid_amount) ? $data->transaction_details->total_paid_amount : 0,
-            "currency" => isset($data->currency_id) ? $data->currency_id : null,
+            "client_id" => $data->metadata->client_id ?? null,
+            "amount" => $data->transaction_amount ?? 0,
+            "currency" => $data->currency_id ?? null,
             "status" => "approved", // we wouldn't be here if it weren't, right?
-            "reference_id" => isset($data->order->id) ? $data->order->id : null,
-            "transaction_id" => isset($data->id) ? $data->id : null,
-            "invoices" => isset($data->metadata->invoices) ? $this->unserializeInvoices($data->metadata->invoices) : null,
+            "reference_id" => $data->order->id ?? null,
+            "transaction_id" => $data->id ?? null,
+            "invoices" => $this->unserializeInvoices($data->metadata->invoices ?? null),
         ];
+    }
+
+    /**
+     * Refund a payment
+     *
+     * @param string $reference_id The reference ID for the previously submitted transaction
+     * @param string $transaction_id The transaction ID for the previously submitted transaction
+     * @param float $amount The amount to refund this transaction
+     * @param string $notes Notes about the refund that may be sent to the client by the gateway
+     * @return array An array of transaction data including:
+     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
+     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
+     *  - transaction_id The ID returned by the remote gateway to identify this transaction
+     *  - message The message to be displayed in the interface in addition to the standard
+     *      message for this transaction status (optional)
+     */
+    public function refund($reference_id, $transaction_id, $amount, $notes = null)
+    {
+	// Load the Mercadopago API
+        $api = $this->getApi($this->meta["access_token"]);
+	$idempotencyKey = $this->generateUuidV4();
+
+	$params = [
+	    "amount" => $amount,
+	];
+
+	return $api->refundPayment($transaction_id, $params, $idempotencyKey);
     }
 
     /**
@@ -371,6 +399,21 @@ class Mercadopago extends NonmerchantGateway
         }
 
         return $invoices;
+    }
+
+    /**
+     * Generates a cryptographically secure UUID version 4.
+     *
+     * @return string A randomly generated UUIDv4 in the format of
+     * xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+     */
+
+    private function generateUuidV4(): string
+    {
+	$data = random_bytes(16);
+	$data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+	$data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+	return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     /**

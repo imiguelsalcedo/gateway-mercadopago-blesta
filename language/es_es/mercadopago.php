@@ -1,8 +1,8 @@
 <?php
-$lang['Mercadopago.name'] = 'Mercadopago';
-$lang['Mercadopago.description'] = 'Mercadopago is the fastest, simplest way to start accepting online payments in LatinAmerica.';
-$lang['Mercadopago.access_token'] = 'Mercadopago Access token';
-$lang['Mercadopago.statement_descriptor'] = 'Statement descriptor.';
-$lang['Mercadopago.access_token_note'] = "Access token.";
-$lang['Mercadopago.statement_descriptor_note'] = 'El statement descriptor es un texto largo (hasta 16 caracteres) que se visualizará en la factura de la tarjeta de crédito del pagador para identificar fácilmente la compra.';
-$lang['Mercadopago.buildprocess.submit'] = "Paga con Mercadopago.";
+$lang['Mercadopago.name'] = 'MercadoPago';
+$lang['Mercadopago.description'] = 'MercadoPago es la forma más rápida y sencilla de comenzar a aceptar pagos en línea en Latinoamérica.';
+$lang['Mercadopago.access_token'] = 'Token de acceso de MercadoPago';
+$lang['Mercadopago.statement_descriptor'] = 'Descriptor del estado de cuenta';
+$lang['Mercadopago.access_token_note'] = 'Token de acceso proporcionado por MercadoPago.';
+$lang['Mercadopago.statement_descriptor_note'] = 'El descriptor del estado de cuenta es un texto (hasta 16 caracteres) que aparecerá en la factura de la tarjeta de crédito del pagador para identificar la compra.';
+$lang['Mercadopago.buildprocess.submit'] = 'Paga con MercadoPago.';

@@ -14,18 +14,19 @@ class MercadopagoResponse
      */
     public function __construct(stdClass $apiResponse)
     {
-        $this->data = isset($apiResponse) && $apiResponse ? $apiResponse : new stdClass();
-        $this->message = '';
-        $this->error = '';
+	$this->data = $apiResponse;
+	$status  = $apiResponse->status ?? false;
+        $message = $apiResponse->message ?? '';
 
-        $message = isset($apiResponse->message) ? $apiResponse->message : '';
-        if (isset($apiResponse->status) && $apiResponse->status == 400) {
-            $this->error = $message;
+	if (is_numeric($status) && $status >= 400) {
+            $this->error   = $message;
+            $this->message = '';
         } else {
             $this->message = $message;
+            $this->error   = '';
         }
 
-        $this->status = isset($apiResponse->status) ? $apiResponse->status : false;
+        $this->status = $status;
     }
 
     /**
